@@ -6,6 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LoginPage } from '@/components/auth/LoginPage';
 import { Navigation } from '@/components/layout/Navigation';
 import { RequestorDashboard } from '@/components/dashboard/RequestorDashboard';
+import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
+import { UserManagement } from '@/components/dashboard/UserManagement';
+import { ITDashboard } from '@/components/dashboard/ITDashboard';
+import { ApprovalDashboard } from '@/components/dashboard/ApprovalDashboard';
 import { initDB, getSession } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 
@@ -93,16 +97,22 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
+        if (userRole === 'admin') {
+          return <AdminDashboard />;
+        }
         return <RequestorDashboard userEmail={userEmail} />;
       case 'users':
-        return <div className="p-8">User Management (Coming Soon)</div>;
+        return <UserManagement />;
       case 'all-requests':
-        return <div className="p-8">All Requests (Coming Soon)</div>;
+        return <AdminDashboard />;
       case 'sap-updates':
-        return <div className="p-8">SAP Updates (Coming Soon)</div>;
+        return <ITDashboard userEmail={userEmail} />;
       case 'approvals':
-        return <div className="p-8">Pending Approvals (Coming Soon)</div>;
+        return <ApprovalDashboard userEmail={userEmail} userRole={userRole} />;
       default:
+        if (userRole === 'admin') {
+          return <AdminDashboard />;
+        }
         return <RequestorDashboard userEmail={userEmail} />;
     }
   };

@@ -278,3 +278,134 @@ export function generateOTP(): string {
 export function generateRequestId(): string {
   return `REQ-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 }
+
+export const getRequestsWithDetails = async (): Promise<any[]> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['requests', 'plantCodeDetails', 'companyCodeDetails', 'approvals'], 'readonly');
+    const requests = await tx.objectStore('requests').getAll();
+    
+    const requestsWithDetails = await Promise.all(
+      requests.map(async (request) => {
+        let details = null;
+        if (request.type === 'plant') {
+          const plantDetails = await tx.objectStore('plantCodeDetails').getAll();
+          details = plantDetails.filter(d => d.requestId === request.requestId).sort((a, b) => b.version - a.version)[0];
+        } else {
+          const companyDetails = await tx.objectStore('companyCodeDetails').getAll();
+          details = companyDetails.filter(d => d.requestId === request.requestId).sort((a, b) => b.version - a.version)[0];
+        }
+        
+        const approvals = await tx.objectStore('approvals').getAll();
+        const requestApprovals = approvals.filter(approval => approval.requestId === request.requestId);
+        
+        return {
+          id: request.requestId,
+          type: request.type,
+          status: request.status,
+          createdBy: request.createdBy,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt,
+          details: details || {},
+          approvals: requestApprovals
+        };
+      })
+    );
+    
+    return requestsWithDetails;
+  } catch (error) {
+    console.error('Failed to get requests with details:', error);
+    throw error;
+  }
+};
+
+export const getAllUsers = async (): Promise<any[]> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['users'], 'readonly');
+    const users = await tx.objectStore('users').getAll();
+    return users;
+  } catch (error) {
+    console.error('Failed to get all users:', error);
+    throw error;
+  }
+};
+
+export const createUser = async (email: string, role: string): Promise<void> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['users'], 'readwrite');
+    const user = {
+      email,
+      role,
+      createdAt: new Date().toISOString()
+    };
+    await tx.objectStore('users').add(user);
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to create user:', error);
+    throw error;
+  }
+};
+
+export const getUserByEmail = async (email: string): Promise<any | null> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['users'], 'readonly');
+    const user = await tx.objectStore('users').get(email);
+    return user || null;
+  } catch (error) {
+    console.error('Failed to get user by email:', error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (email: string): Promise<void> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['users'], 'readwrite');
+    await tx.objectStore('users').delete(email);
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to delete user:', error);
+    throw error;
+  }
+};
+
+export const addApproval = async (requestId: string, approverEmail: string, role: string, decision: string, comment: string, attachmentId?: string): Promise<void> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['approvals'], 'readwrite');
+    const approval = {
+      requestId,
+      approverEmail,
+      role,
+      decision,
+      comment,
+      attachmentId,
+      timestamp: new Date().toISOString()
+    };
+    await tx.objectStore('approvals').put(approval);
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to add approval:', error);
+    throw error;
+  }
+};
+
+export const updateRequestStatus = async (requestId: string, status: string): Promise<void> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['requests'], 'readwrite');
+    const request = await tx.objectStore('requests').get(requestId);
+    if (request) {
+      request.status = status;
+      request.updatedAt = new Date().toISOString();
+      await tx.objectStore('requests').put(request);
+    }
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to update request status:', error);
+    throw error;
+  }
+};
