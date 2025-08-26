@@ -3,7 +3,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 // Types
 export interface User {
   email: string;
-  role: 'requestor' | 'it' | 'secretary' | 'finance' | 'raghu' | 'siva' | 'admin';
+  role: 'requestor' | 'it' | 'secretary' | 'siva' | 'raghu' | 'manoj' | 'admin';
   createdAt: string;
 }
 
@@ -11,11 +11,14 @@ export interface Request {
   requestId: string;
   type: 'plant' | 'company';
   title: string;
-  status: 'draft' | 'pending-secretary' | 'pending-finance' | 'pending-raghu' | 'pending-siva' | 'approved' | 'rejected' | 'sap-updated';
+  status: 'draft' | 'pending-secretary' | 'pending-siva' | 'pending-raghu' | 'pending-manoj' | 'approved' | 'rejected' | 'sap-updated' | 'completed';
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   version: number;
+  isCompleted?: boolean;
+  completedAt?: string;
+  turnaroundTime?: number; // in days
 }
 
 export interface PlantCodeDetails {
@@ -34,6 +37,10 @@ export interface PlantCodeDetails {
   nameOfProfitCenter: string;
   costCenters: string;
   nameOfCostCenters: string;
+  projectCode: string;
+  projectCodeDescription: string;
+  storageLocationCode: string;
+  storageLocationDescription: string;
   version: number;
 }
 
@@ -46,18 +53,7 @@ export interface CompanyCodeDetails {
   cin: string;
   pan: string;
   segment: string;
-  controllingArea: string;
-  plantCode: string;
-  nameOfPlant: string;
-  addressOfPlant: string;
-  purchaseOrganization: string;
-  nameOfPurchaseOrganization: string;
-  salesOrganization: string;
-  nameOfSalesOrganization: string;
-  profitCenter: string;
-  nameOfProfitCenter: string;
-  costCenters: string;
-  nameOfCostCenters: string;
+  nameOfSegment: string;
   version: number;
 }
 
@@ -153,9 +149,9 @@ async function initializeDefaultUsers() {
   const defaultUsers: User[] = [
     { email: 'it@pel.com', role: 'it', createdAt: new Date().toISOString() },
     { email: 'sec@pel.com', role: 'secretary', createdAt: new Date().toISOString() },
-    { email: 'fin@pel.com', role: 'finance', createdAt: new Date().toISOString() },
-    { email: 'raghu@pel.com', role: 'raghu', createdAt: new Date().toISOString() },
     { email: 'siva@pel.com', role: 'siva', createdAt: new Date().toISOString() },
+    { email: 'raghu@pel.com', role: 'raghu', createdAt: new Date().toISOString() },
+    { email: 'manoj@pel.com', role: 'manoj', createdAt: new Date().toISOString() },
     { email: 'aarnav@pel.com', role: 'admin', createdAt: new Date().toISOString() },
   ];
 
@@ -220,9 +216,9 @@ export async function getPendingRequestsForRole(role: string): Promise<Request[]
   const db = await initDB();
   const statusMap: Record<string, string> = {
     secretary: 'pending-secretary',
-    finance: 'pending-finance',
-    raghu: 'pending-raghu',
     siva: 'pending-siva',
+    raghu: 'pending-raghu',
+    manoj: 'pending-manoj',
   };
   
   const status = statusMap[role];
@@ -368,6 +364,54 @@ export const deleteUser = async (email: string): Promise<void> => {
     await tx.done;
   } catch (error) {
     console.error('Failed to delete user:', error);
+    throw error;
+  }
+};
+
+export const markRequestCompleted = async (requestId: string, completedBy: string): Promise<void> => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(['requests'], 'readwrite');
+    const request = await tx.objectStore('requests').get(requestId);
+    
+    if (request) {
+      const completedAt = new Date().toISOString();
+      const createdDate = new Date(request.createdAt);
+      const completedDate = new Date(completedAt);
+      const turnaroundTime = Math.ceil((completedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      request.status = 'completed';
+      request.isCompleted = true;
+      request.completedAt = completedAt;
+      request.turnaroundTime = turnaroundTime;
+      request.updatedAt = completedAt;
+      
+      await tx.objectStore('requests').put(request);
+      
+      // Log the completion
+      await saveHistoryLog({
+        requestId,
+        action: 'update-sap',
+        user: completedBy,
+        timestamp: completedAt,
+        metadata: { turnaroundTime, completedBy }
+      });
+    }
+    
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to mark request as completed:', error);
+    throw error;
+  }
+};
+
+export const getCompletedRequests = async (): Promise<Request[]> => {
+  try {
+    const db = await initDB();
+    const requests = await db.getAllFromIndex('requests', 'status', 'completed');
+    return requests.sort((a, b) => new Date(b.completedAt || b.updatedAt).getTime() - new Date(a.completedAt || a.updatedAt).getTime());
+  } catch (error) {
+    console.error('Failed to get completed requests:', error);
     throw error;
   }
 };

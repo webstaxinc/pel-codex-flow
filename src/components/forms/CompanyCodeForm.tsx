@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, Building, Info } from 'lucide-react';
@@ -46,18 +45,7 @@ export function CompanyCodeForm({
     cin: '',
     pan: '',
     segment: '',
-    controllingArea: '',
-    plantCode: '',
-    nameOfPlant: '',
-    addressOfPlant: '',
-    purchaseOrganization: '',
-    nameOfPurchaseOrganization: '',
-    salesOrganization: '',
-    nameOfSalesOrganization: '',
-    profitCenter: '',
-    nameOfProfitCenter: '',
-    costCenters: '',
-    nameOfCostCenters: ''
+    nameOfSegment: ''
   });
 
   useEffect(() => {
@@ -82,18 +70,7 @@ export function CompanyCodeForm({
           cin: details.cin || '',
           pan: details.pan || '',
           segment: details.segment || '',
-          controllingArea: details.controllingArea || '',
-          plantCode: details.plantCode || '',
-          nameOfPlant: details.nameOfPlant || '',
-          addressOfPlant: details.addressOfPlant || '',
-          purchaseOrganization: details.purchaseOrganization || '',
-          nameOfPurchaseOrganization: details.nameOfPurchaseOrganization || '',
-          salesOrganization: details.salesOrganization || '',
-          nameOfSalesOrganization: details.nameOfSalesOrganization || '',
-          profitCenter: details.profitCenter || '',
-          nameOfProfitCenter: details.nameOfProfitCenter || '',
-          costCenters: details.costCenters || '',
-          nameOfCostCenters: details.nameOfCostCenters || ''
+          nameOfSegment: details.nameOfSegment || ''
         });
       }
     } catch (error) {
@@ -110,18 +87,7 @@ export function CompanyCodeForm({
       cin: '',
       pan: '',
       segment: '',
-      controllingArea: '',
-      plantCode: '',
-      nameOfPlant: '',
-      addressOfPlant: '',
-      purchaseOrganization: '',
-      nameOfPurchaseOrganization: '',
-      salesOrganization: '',
-      nameOfSalesOrganization: '',
-      profitCenter: '',
-      nameOfProfitCenter: '',
-      costCenters: '',
-      nameOfCostCenters: ''
+      nameOfSegment: ''
     });
   };
 
@@ -207,18 +173,7 @@ export function CompanyCodeForm({
         cin: formData.cin,
         pan: formData.pan,
         segment: formData.segment,
-        controllingArea: formData.controllingArea,
-        plantCode: formData.plantCode,
-        nameOfPlant: formData.nameOfPlant,
-        addressOfPlant: formData.addressOfPlant,
-        purchaseOrganization: formData.purchaseOrganization,
-        nameOfPurchaseOrganization: formData.nameOfPurchaseOrganization,
-        salesOrganization: formData.salesOrganization,
-        nameOfSalesOrganization: formData.nameOfSalesOrganization,
-        profitCenter: formData.profitCenter,
-        nameOfProfitCenter: formData.nameOfProfitCenter,
-        costCenters: formData.costCenters,
-        nameOfCostCenters: formData.nameOfCostCenters,
+        nameOfSegment: formData.nameOfSegment,
         version: request.version
       };
 
@@ -344,6 +299,16 @@ export function CompanyCodeForm({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="nameOfSegment">Name of Segment *</Label>
+                <Input
+                  id="nameOfSegment"
+                  value={formData.nameOfSegment}
+                  onChange={(e) => handleInputChange('nameOfSegment', e.target.value)}
+                  placeholder="Enter segment name"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>GST Certificate *</Label>
                 <Button
                   variant="outline"
@@ -378,127 +343,15 @@ export function CompanyCodeForm({
                   {formData.pan || 'Upload PAN'}
                 </Button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="controllingArea">Controlling Area *</Label>
-                <Input
-                  id="controllingArea"
-                  value={formData.controllingArea}
-                  onChange={(e) => handleInputChange('controllingArea', e.target.value)}
-                  placeholder="Enter controlling area"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="plantCode">Plant Code *</Label>
-                <Input
-                  id="plantCode"
-                  value={formData.plantCode}
-                  onChange={(e) => handleInputChange('plantCode', e.target.value)}
-                  placeholder="Enter plant code"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nameOfPlant">Name of Plant *</Label>
-                <Input
-                  id="nameOfPlant"
-                  value={formData.nameOfPlant}
-                  onChange={(e) => handleInputChange('nameOfPlant', e.target.value)}
-                  placeholder="Enter plant name"
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="addressOfPlant">Address of Plant (as per GST) *</Label>
-                <Textarea
-                  id="addressOfPlant"
-                  value={formData.addressOfPlant}
-                  onChange={(e) => handleInputChange('addressOfPlant', e.target.value)}
-                  placeholder="Enter plant address as per GST certificate"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="purchaseOrganization">Purchase Organization *</Label>
-                <Input
-                  id="purchaseOrganization"
-                  value={formData.purchaseOrganization}
-                  onChange={(e) => handleInputChange('purchaseOrganization', e.target.value)}
-                  placeholder="Enter purchase organization"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nameOfPurchaseOrganization">Name of Purchase Organization *</Label>
-                <Input
-                  id="nameOfPurchaseOrganization"
-                  value={formData.nameOfPurchaseOrganization}
-                  onChange={(e) => handleInputChange('nameOfPurchaseOrganization', e.target.value)}
-                  placeholder="Enter purchase organization name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="salesOrganization">Sales Organization *</Label>
-                <Input
-                  id="salesOrganization"
-                  value={formData.salesOrganization}
-                  onChange={(e) => handleInputChange('salesOrganization', e.target.value)}
-                  placeholder="Enter sales organization"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nameOfSalesOrganization">Name of Sales Organization *</Label>
-                <Input
-                  id="nameOfSalesOrganization"
-                  value={formData.nameOfSalesOrganization}
-                  onChange={(e) => handleInputChange('nameOfSalesOrganization', e.target.value)}
-                  placeholder="Enter sales organization name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="profitCenter">Profit Center *</Label>
-                <Input
-                  id="profitCenter"
-                  value={formData.profitCenter}
-                  onChange={(e) => handleInputChange('profitCenter', e.target.value)}
-                  placeholder="Enter profit center"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nameOfProfitCenter">Name of Profit Center *</Label>
-                <Input
-                  id="nameOfProfitCenter"
-                  value={formData.nameOfProfitCenter}
-                  onChange={(e) => handleInputChange('nameOfProfitCenter', e.target.value)}
-                  placeholder="Enter profit center name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="costCenters">Cost Centers *</Label>
-                <Input
-                  id="costCenters"
-                  value={formData.costCenters}
-                  onChange={(e) => handleInputChange('costCenters', e.target.value)}
-                  placeholder="Enter cost centers"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nameOfCostCenters">Name of Cost Centers *</Label>
-                <Input
-                  id="nameOfCostCenters"
-                  value={formData.nameOfCostCenters}
-                  onChange={(e) => handleInputChange('nameOfCostCenters', e.target.value)}
-                  placeholder="Enter cost centers name"
-                />
-              </div>
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <h4 className="font-medium text-sm">Important Notes:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• A new company code can only be created if PEL Group holds ≥ 51% Stake in the company</li>
+                <li>• The company code creation will take 10 days from the receipt of an approved request</li>
+                <li>• All fields are mandatory</li>
+              </ul>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">

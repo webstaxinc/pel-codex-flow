@@ -8,7 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { getRequestsWithDetails, addApproval, updateRequestStatus } from '@/lib/storage';
+import { 
+  getRequestsWithDetails, 
+  addApproval, 
+  updateRequestStatus,
+  getHistoryForRequest 
+} from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle, 
@@ -18,10 +23,8 @@ import {
   Search, 
   Eye,
   MessageSquare,
-  Upload,
   Calendar,
-  User,
-  Filter
+  User
 } from 'lucide-react';
 
 interface Request {
@@ -47,6 +50,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
   const [isApproving, setIsApproving] = useState(false);
+  const [requestHistory, setRequestHistory] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -69,15 +73,14 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
     }
   };
 
-  const getNextStatus = (currentStatus: string, userRole: string, decision: 'approved' | 'rejected') => {
-    if (decision === 'rejected') return 'rejected';
+  const getNextStatus = (currentStatus: string, decision: 'approve' | 'reject') => {
+    if (decision === 'reject') return 'rejected';
     
     const approvalFlow = {
-      'pending': 'secretary-review',
-      'secretary-review': 'finance-review',
-      'finance-review': 'raghu-review',
-      'raghu-review': 'siva-review',
-      'siva-review': 'approved'
+      'pending-secretary': 'pending-siva',
+      'pending-siva': 'pending-raghu', 
+      'pending-raghu': 'pending-manoj',
+      'pending-manoj': 'approved'
     };
 
     return approvalFlow[currentStatus as keyof typeof approvalFlow] || currentStatus;
@@ -85,16 +88,16 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
 
   const canApprove = (request: Request) => {
     const statusRoleMap = {
-      'pending': 'secretary',
-      'secretary-review': 'finance',
-      'finance-review': 'raghu',
-      'raghu-review': 'siva'
+      'pending-secretary': 'secretary',
+      'pending-siva': 'siva',
+      'pending-raghu': 'raghu',
+      'pending-manoj': 'manoj'
     };
     
     return statusRoleMap[request.status as keyof typeof statusRoleMap] === userRole;
   };
 
-  const handleApproval = async (requestId: string, decision: 'approved' | 'rejected') => {
+  const handleApproval = async (requestId: string, decision: 'approve' | 'reject') => {
     if (!approvalComment.trim()) {
       toast({
         title: "Error",
@@ -111,7 +114,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
 
       await addApproval(requestId, userEmail, userRole, decision, approvalComment);
       
-      const nextStatus = getNextStatus(request.status, userRole, decision);
+      const nextStatus = getNextStatus(request.status, decision);
       await updateRequestStatus(requestId, nextStatus);
       
       setApprovalComment('');
@@ -120,7 +123,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
       
       toast({
         title: "Success",
-        description: `Request ${decision} successfully`,
+        description: `Request ${decision}d successfully`,
         variant: "default"
       });
     } catch (error) {
@@ -135,6 +138,15 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
     }
   };
 
+  const loadRequestHistory = async (requestId: string) => {
+    try {
+      const history = await getHistoryForRequest(requestId);
+      setRequestHistory(history);
+    } catch (error) {
+      console.error('Failed to load request history:', error);
+    }
+  };
+
   const filteredRequests = requests.filter(request => 
     request.details?.companyCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.details?.plantCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,26 +158,26 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'warning';
-      case 'secretary-review': return 'secondary';
-      case 'finance-review': return 'secondary';
-      case 'raghu-review': return 'secondary';
-      case 'siva-review': return 'secondary';
+      case 'pending-secretary': return 'warning';
+      case 'pending-siva': return 'secondary';
+      case 'pending-raghu': return 'secondary';
+      case 'pending-manoj': return 'secondary';
       case 'approved': return 'success';
       case 'rejected': return 'destructive';
+      case 'completed': return 'success';
       default: return 'secondary';
     }
   };
 
   const getStatusDisplay = (status: string) => {
     const statusMap = {
-      'pending': 'Pending Review',
-      'secretary-review': 'Secretary Review',
-      'finance-review': 'Finance Review',
-      'raghu-review': 'Raghu Review',
-      'siva-review': 'Siva Review',
+      'pending-secretary': 'Secretary Review',
+      'pending-siva': 'Siva Review',
+      'pending-raghu': 'Raghu Review',
+      'pending-manoj': 'Manoj Review',
       'approved': 'Approved',
-      'rejected': 'Rejected'
+      'rejected': 'Rejected',
+      'completed': 'Completed'
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
@@ -173,9 +185,9 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
   const getRoleDisplay = (role: string) => {
     const roleMap = {
       'secretary': 'Secretary',
-      'finance': 'Finance Team',
-      'raghu': 'Raghu',
-      'siva': 'Siva'
+      'siva': 'Sivashankar', 
+      'raghu': 'Raghu Ram',
+      'manoj': 'Manoj Kumar Sahoo'
     };
     return roleMap[role as keyof typeof roleMap] || role;
   };
@@ -238,7 +250,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
               {requests.filter(r => {
                 const hasMyApproval = r.approvals?.some(a => 
                   a.approverEmail === userEmail && 
-                  a.decision === 'approved' &&
+                  a.decision === 'approve' &&
                   new Date(a.timestamp).toDateString() === new Date().toDateString()
                 );
                 return hasMyApproval;
@@ -341,12 +353,18 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                         <TableCell className="text-right">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button size="sm" onClick={() => setSelectedRequest(request)}>
+                              <Button 
+                                size="sm" 
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  loadRequestHistory(request.id);
+                                }}
+                              >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Review
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl">
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Review Request</DialogTitle>
                                 <DialogDescription>
@@ -359,7 +377,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                 <div className="space-y-4">
                                   <h4 className="font-medium">Request Details</h4>
                                   <div className="space-y-3">
-                                    {Object.entries(request.details).map(([key, value]) => (
+                                    {Object.entries(request.details || {}).map(([key, value]) => (
                                       <div key={key}>
                                         <Label className="text-sm font-medium capitalize">
                                           {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
@@ -377,7 +395,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                         {request.approvals.map((approval, index) => (
                                           <div key={index} className="flex items-center justify-between p-3 bg-muted rounded">
                                             <div className="flex items-center space-x-3">
-                                              <Badge variant={approval.decision === 'approved' ? 'success' : 'destructive'}>
+                                              <Badge variant={approval.decision === 'approve' ? 'success' : 'destructive'}>
                                                 {approval.decision}
                                               </Badge>
                                               <div>
@@ -387,6 +405,26 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                             </div>
                                             <span className="text-xs text-muted-foreground">
                                               {new Date(approval.timestamp).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Request History */}
+                                  {requestHistory.length > 0 && (
+                                    <div>
+                                      <h4 className="font-medium mb-2">Request History</h4>
+                                      <div className="space-y-2">
+                                        {requestHistory.map((history, index) => (
+                                          <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                            <div>
+                                              <span className="font-medium">{history.action}</span>
+                                              <span className="text-muted-foreground ml-2">by {history.user}</span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(history.timestamp).toLocaleString()}
                                             </span>
                                           </div>
                                         ))}
@@ -415,7 +453,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                       <Button
                                         variant="outline"
                                         className="flex-1"
-                                        onClick={() => handleApproval(request.id, 'rejected')}
+                                        onClick={() => handleApproval(request.id, 'reject')}
                                         disabled={isApproving}
                                       >
                                         <XCircle className="h-4 w-4 mr-2" />
@@ -423,7 +461,7 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                       </Button>
                                       <Button
                                         className="flex-1"
-                                        onClick={() => handleApproval(request.id, 'approved')}
+                                        onClick={() => handleApproval(request.id, 'approve')}
                                         disabled={isApproving}
                                       >
                                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -446,12 +484,25 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
         </TabsContent>
 
         <TabsContent value="all" className="space-y-4">
+          {/* Search */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by code, requestor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* All Requests */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                All Requests ({allRequests.length})
-              </CardTitle>
+              <CardTitle>All Requests</CardTitle>
               <CardDescription>
                 Complete history of all requests in the system
               </CardDescription>
@@ -464,46 +515,33 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                     <TableHead>Type</TableHead>
                     <TableHead>Code</TableHead>
                     <TableHead>Requestor</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>My Action</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allRequests.map((request) => {
-                    const myApproval = request.approvals?.find(a => a.approverEmail === userEmail);
-                    return (
-                      <TableRow key={request.id}>
-                        <TableCell className="font-mono">{request.id.slice(0, 8)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {request.type === 'plant' ? 'Plant Code' : 'Company Code'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {request.details?.plantCode || request.details?.companyCode || 'N/A'}
-                        </TableCell>
-                        <TableCell>{request.createdBy}</TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusColor(request.status)}>
-                            {getStatusDisplay(request.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          {myApproval ? (
-                            <Badge variant={myApproval.decision === 'approved' ? 'success' : 'destructive'}>
-                              {myApproval.decision}
-                            </Badge>
-                          ) : canApprove(request) ? (
-                            <Badge variant="warning">Pending</Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {allRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell className="font-mono">{request.id.slice(0, 8)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {request.type === 'plant' ? 'Plant Code' : 'Company Code'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {request.details?.plantCode || request.details?.companyCode || 'N/A'}
+                      </TableCell>
+                      <TableCell>{request.createdBy}</TableCell>
+                      <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(request.updatedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusColor(request.status)}>
+                          {getStatusDisplay(request.status)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

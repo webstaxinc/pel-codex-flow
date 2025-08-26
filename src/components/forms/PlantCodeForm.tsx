@@ -52,7 +52,11 @@ export function PlantCodeForm({
     profitCenter: '',
     nameOfProfitCenter: '',
     costCenters: '',
-    nameOfCostCenters: ''
+    nameOfCostCenters: '',
+    projectCode: '',
+    projectCodeDescription: '',
+    storageLocationCode: '',
+    storageLocationDescription: ''
   });
 
   useEffect(() => {
@@ -83,7 +87,11 @@ export function PlantCodeForm({
           profitCenter: details.profitCenter || '',
           nameOfProfitCenter: details.nameOfProfitCenter || '',
           costCenters: details.costCenters || '',
-          nameOfCostCenters: details.nameOfCostCenters || ''
+          nameOfCostCenters: details.nameOfCostCenters || '',
+          projectCode: details.projectCode || '',
+          projectCodeDescription: details.projectCodeDescription || '',
+          storageLocationCode: details.storageLocationCode || '',
+          storageLocationDescription: details.storageLocationDescription || ''
         });
       }
     } catch (error) {
@@ -106,7 +114,11 @@ export function PlantCodeForm({
       profitCenter: '',
       nameOfProfitCenter: '',
       costCenters: '',
-      nameOfCostCenters: ''
+      nameOfCostCenters: '',
+      projectCode: '',
+      projectCodeDescription: '',
+      storageLocationCode: '',
+      storageLocationDescription: ''
     });
   };
 
@@ -398,6 +410,55 @@ export function PlantCodeForm({
                   placeholder="Enter cost centers name"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="projectCode">Project Code *</Label>
+                <Input
+                  id="projectCode"
+                  value={formData.projectCode}
+                  onChange={(e) => handleInputChange('projectCode', e.target.value)}
+                  placeholder="Enter project code"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="projectCodeDescription">Project Code Description *</Label>
+                <Input
+                  id="projectCodeDescription"
+                  value={formData.projectCodeDescription}
+                  onChange={(e) => handleInputChange('projectCodeDescription', e.target.value)}
+                  placeholder="Enter project code description"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="storageLocationCode">Storage Location Code *</Label>
+                <Input
+                  id="storageLocationCode"
+                  value={formData.storageLocationCode}
+                  onChange={(e) => handleInputChange('storageLocationCode', e.target.value)}
+                  placeholder="Enter storage location code"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="storageLocationDescription">Storage Location Description *</Label>
+                <Input
+                  id="storageLocationDescription"
+                  value={formData.storageLocationDescription}
+                  onChange={(e) => handleInputChange('storageLocationDescription', e.target.value)}
+                  placeholder="Enter storage location description"
+                />
+              </div>
+            </div>
+
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <h4 className="font-medium text-sm">Important Notes:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• The plant code creation will take 2 days from receipt of an approved request</li>
+                <li>• All fields are mandatory</li>
+                <li>• Address of the plant will be printed on the PO Print Form</li>
+              </ul>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">

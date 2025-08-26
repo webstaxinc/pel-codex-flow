@@ -222,12 +222,8 @@ export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDet
                           <p className="text-sm">{(details as CompanyCodeDetails).pan}</p>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-sm font-medium text-muted-foreground">Controlling Area</label>
-                          <p className="text-sm">{(details as CompanyCodeDetails).controllingArea}</p>
-                        </div>
-                        <div className="space-y-1 md:col-span-2">
-                          <label className="text-sm font-medium text-muted-foreground">Plant Address</label>
-                          <p className="text-sm">{(details as CompanyCodeDetails).addressOfPlant}</p>
+                          <label className="text-sm font-medium text-muted-foreground">Name of Segment</label>
+                          <p className="text-sm">{(details as CompanyCodeDetails).nameOfSegment}</p>
                         </div>
                       </>
                     )}
