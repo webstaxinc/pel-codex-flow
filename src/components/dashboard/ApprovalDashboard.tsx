@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 import { 
   getRequestsWithDetails, 
   addApproval, 
@@ -51,6 +52,17 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
   const [approvalComment, setApprovalComment] = useState('');
   const [isApproving, setIsApproving] = useState(false);
   const [requestHistory, setRequestHistory] = useState<any[]>([]);
+  const [documentViewer, setDocumentViewer] = useState<{
+    open: boolean;
+    fileName: string;
+    fileContent: string;
+    fileType: string;
+  }>({
+    open: false,
+    fileName: '',
+    fileContent: '',
+    fileType: ''
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -469,19 +481,19 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
                                       </Button>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                                 </div>
+                               </div>
+                             </DialogContent>
+                           </Dialog>
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               )}
+             </CardContent>
+           </Card>
+         </TabsContent>
 
         <TabsContent value="all" className="space-y-4">
           {/* Search */}
@@ -546,8 +558,16 @@ export function ApprovalDashboard({ userEmail, userRole }: ApprovalDashboardProp
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+         </TabsContent>
+       </Tabs>
+       
+       <DocumentViewer
+         open={documentViewer.open}
+         onOpenChange={(open) => setDocumentViewer(prev => ({ ...prev, open }))}
+         fileName={documentViewer.fileName}
+         fileContent={documentViewer.fileContent}
+         fileType={documentViewer.fileType}
+       />
+     </div>
+   );
+ }

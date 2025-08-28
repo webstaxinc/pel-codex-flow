@@ -41,7 +41,6 @@ export function PlantCodeForm({
   const [formData, setFormData] = useState({
     companyCode: '',
     gstCertificate: '',
-    pan: '',
     plantCode: '',
     nameOfPlant: '',
     addressOfPlant: '',
@@ -76,7 +75,6 @@ export function PlantCodeForm({
         setFormData({
           companyCode: details.companyCode || '',
           gstCertificate: details.gstCertificate || '',
-          pan: details.pan || '',
           plantCode: details.plantCode || '',
           nameOfPlant: details.nameOfPlant || '',
           addressOfPlant: details.addressOfPlant || '',
@@ -103,7 +101,6 @@ export function PlantCodeForm({
     setFormData({
       companyCode: '',
       gstCertificate: '',
-      pan: '',
       plantCode: '',
       nameOfPlant: '',
       addressOfPlant: '',
@@ -298,17 +295,6 @@ export function PlantCodeForm({
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label>PAN *</Label>
-                <Button
-                  variant="outline"
-                  onClick={() => handleFileUpload('pan')}
-                  className="w-full justify-start"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {formData.pan || 'Upload PAN'}
-                </Button>
-              </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="nameOfPlant">Name of the Plant *</Label>

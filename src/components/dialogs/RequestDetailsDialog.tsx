@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 import { 
   FileText, 
   Clock, 
@@ -36,6 +38,17 @@ export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDet
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [history, setHistory] = useState<HistoryLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [documentViewer, setDocumentViewer] = useState<{
+    open: boolean;
+    fileName: string;
+    fileContent: string;
+    fileType: string;
+  }>({
+    open: false,
+    fileName: '',
+    fileContent: '',
+    fileType: ''
+  });
 
   useEffect(() => {
     if (open && request) {
@@ -169,10 +182,6 @@ export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDet
                         <div className="space-y-1">
                           <label className="text-sm font-medium text-muted-foreground">GST Certificate</label>
                           <p className="text-sm">{(details as PlantCodeDetails).gstCertificate}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-sm font-medium text-muted-foreground">PAN</label>
-                          <p className="text-sm">{(details as PlantCodeDetails).pan}</p>
                         </div>
                         <div className="space-y-1">
                           <label className="text-sm font-medium text-muted-foreground">Purchase Organization</label>
@@ -328,6 +337,14 @@ export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDet
           </TabsContent>
         </Tabs>
       </DialogContent>
+      
+      <DocumentViewer
+        open={documentViewer.open}
+        onOpenChange={(open) => setDocumentViewer(prev => ({ ...prev, open }))}
+        fileName={documentViewer.fileName}
+        fileContent={documentViewer.fileContent}
+        fileType={documentViewer.fileType}
+      />
     </Dialog>
   );
 }

@@ -36,6 +36,10 @@ const App = () => {
         setIsAuthenticated(true);
         setUserEmail(session.email);
         setUserRole(session.role);
+        // Set default page based on role
+        if (['secretary', 'siva', 'raghu', 'manoj'].includes(session.role)) {
+          setCurrentPage('approvals');
+        }
       }
     } catch (error) {
       console.error('Failed to initialize app:', error);
@@ -53,6 +57,10 @@ const App = () => {
     setIsAuthenticated(true);
     setUserEmail(email);
     setUserRole(role);
+    // Set default page based on role
+    if (['secretary', 'siva', 'raghu', 'manoj'].includes(role)) {
+      setCurrentPage('approvals');
+    }
   };
 
   const handleLogout = () => {

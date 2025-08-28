@@ -25,7 +25,6 @@ export interface PlantCodeDetails {
   requestId: string;
   companyCode: string;
   gstCertificate: string;
-  pan: string;
   plantCode: string;
   nameOfPlant: string;
   addressOfPlant: string;
