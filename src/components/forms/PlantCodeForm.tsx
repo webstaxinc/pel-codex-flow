@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, FileText, Info } from 'lucide-react';
+import { Upload, FileText, Info, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Request,
@@ -17,12 +17,14 @@ import {
   generateRequestId,
   getLatestRequestDetails
 } from '@/lib/storage';
+import { compareObjects, formatChangesForNotification, generateChangesSummary } from '@/lib/changeTracking';
 
 interface PlantCodeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail: string;
   existingRequest?: Request;
+  isChangeRequest?: boolean;
   onSuccess: () => void;
 }
 
@@ -30,11 +32,13 @@ export function PlantCodeForm({
   open, 
   onOpenChange, 
   userEmail, 
-  existingRequest, 
+  existingRequest,
+  isChangeRequest = false,
   onSuccess 
 }: PlantCodeFormProps) {
   const [loading, setLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [originalData, setOriginalData] = useState<PlantCodeDetails | null>(null);
   const { toast } = useToast();
   
   // Form data
@@ -70,9 +74,9 @@ export function PlantCodeForm({
     if (!existingRequest) return;
     
     try {
-      const details = await getLatestRequestDetails(existingRequest.requestId, 'plant') as PlantCodeDetails;
+      const details = await getLatestRequestDetails((existingRequest as any).requestId || (existingRequest as any).id, 'plant') as PlantCodeDetails;
       if (details) {
-        setFormData({
+        const formDataObj = {
           companyCode: details.companyCode || '',
           gstCertificate: details.gstCertificate || '',
           plantCode: details.plantCode || '',
@@ -90,7 +94,33 @@ export function PlantCodeForm({
           projectCodeDescription: details.projectCodeDescription || '',
           storageLocationCode: details.storageLocationCode || '',
           storageLocationDescription: details.storageLocationDescription || ''
-        });
+        };
+        setFormData(formDataObj);
+        setOriginalData(details);
+      } else if (isChangeRequest && (existingRequest as any).details) {
+        // Load from the request details if available
+        const details = (existingRequest as any).details;
+        const formDataObj = {
+          companyCode: details.companyCode || '',
+          gstCertificate: details.gstCertificate || '',
+          plantCode: details.plantCode || '',
+          nameOfPlant: details.nameOfPlant || '',
+          addressOfPlant: details.addressOfPlant || '',
+          purchaseOrganization: details.purchaseOrganization || '',
+          nameOfPurchaseOrganization: details.nameOfPurchaseOrganization || '',
+          salesOrganization: details.salesOrganization || '',
+          nameOfSalesOrganization: details.nameOfSalesOrganization || '',
+          profitCenter: details.profitCenter || '',
+          nameOfProfitCenter: details.nameOfProfitCenter || '',
+          costCenters: details.costCenters || '',
+          nameOfCostCenters: details.nameOfCostCenters || '',
+          projectCode: details.projectCode || '',
+          projectCodeDescription: details.projectCodeDescription || '',
+          storageLocationCode: details.storageLocationCode || '',
+          storageLocationDescription: details.storageLocationDescription || ''
+        };
+        setFormData(formDataObj);
+        setOriginalData(details);
       }
     } catch (error) {
       console.error('Error loading existing data:', error);
@@ -158,7 +188,7 @@ export function PlantCodeForm({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    if (existingRequest && !showConfirmation) {
+    if ((existingRequest || isChangeRequest) && !showConfirmation) {
       setShowConfirmation(true);
       return;
     }
@@ -167,17 +197,24 @@ export function PlantCodeForm({
 
     try {
       const now = new Date().toISOString();
-      let requestId = existingRequest?.requestId || generateRequestId();
+      let requestId = (existingRequest as any)?.requestId || (existingRequest as any)?.id || generateRequestId();
+      
+      // For change requests, generate a new request ID
+      if (isChangeRequest) {
+        requestId = generateRequestId();
+      }
       
       const request: Request = {
         requestId,
         type: 'plant',
-        title: `Plant Code: ${formData.plantCode} - ${formData.nameOfPlant}`,
+        title: isChangeRequest 
+          ? `Change Request - Plant Code: ${formData.plantCode} - ${formData.nameOfPlant}`
+          : `Plant Code: ${formData.plantCode} - ${formData.nameOfPlant}`,
         status: 'pending-secretary',
         createdBy: userEmail,
-        createdAt: existingRequest?.createdAt || now,
+        createdAt: isChangeRequest ? now : (existingRequest?.createdAt || now),
         updatedAt: now,
-        version: (existingRequest?.version || 0) + 1
+        version: isChangeRequest ? 1 : ((existingRequest?.version || 0) + 1)
       };
 
       const details: PlantCodeDetails = {
@@ -189,19 +226,43 @@ export function PlantCodeForm({
       await saveRequest(request);
       await savePlantCodeDetails(details);
       
-      await saveHistoryLog({
-        requestId,
-        action: existingRequest ? 'edit' : 'create',
-        user: userEmail,
-        timestamp: now,
-        metadata: { type: 'plant', title: request.title }
-      });
+      // Track changes if this is a change request
+      let changesSummary = '';
+      if (isChangeRequest && originalData) {
+        const comparison = compareObjects(originalData, formData, 'plant');
+        changesSummary = formatChangesForNotification(comparison.changes);
+        
+        await saveHistoryLog({
+          requestId,
+          action: 'create',
+          user: userEmail,
+          timestamp: now,
+          metadata: { 
+            type: 'plant', 
+            title: request.title,
+            isChangeRequest: true,
+            originalRequestId: (existingRequest as any)?.requestId || (existingRequest as any)?.id,
+            changes: comparison.changes,
+            changesSummary
+          }
+        });
+      } else {
+        await saveHistoryLog({
+          requestId,
+          action: existingRequest ? 'edit' : 'create',
+          user: userEmail,
+          timestamp: now,
+          metadata: { type: 'plant', title: request.title }
+        });
+      }
 
       toast({
-        title: existingRequest ? "Request Updated" : "Request Created",
-        description: existingRequest 
-          ? "Your plant code request has been updated successfully"
-          : "Your plant code request has been created and submitted for approval",
+        title: isChangeRequest ? "Change Request Created" : (existingRequest ? "Request Updated" : "Request Created"),
+        description: isChangeRequest 
+          ? `Change request created successfully. Changes: ${changesSummary}`
+          : (existingRequest 
+            ? "Your plant code request has been updated successfully"
+            : "Your plant code request has been created and submitted for approval"),
         variant: "default"
       });
 
@@ -224,25 +285,47 @@ export function PlantCodeForm({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {existingRequest ? 'Edit Plant Code Request' : 'Create Plant Code Request'}
+            {isChangeRequest 
+              ? 'Create Change Request - Plant Code' 
+              : (existingRequest ? 'Edit Plant Code Request' : 'Create Plant Code Request')
+            }
           </DialogTitle>
           <DialogDescription>
-            {existingRequest 
-              ? 'Update your plant code creation request details' 
-              : 'Fill in all required information for plant code creation'
+            {isChangeRequest
+              ? 'Create a change request for this existing plant code. Changes will go through the full approval process.'
+              : (existingRequest 
+                ? 'Update your plant code creation request details' 
+                : 'Fill in all required information for plant code creation')
             }
           </DialogDescription>
         </DialogHeader>
 
         {showConfirmation && (
           <Alert>
-            <Info className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Are you sure you want to confirm these changes? This will create a new version of your request.
+              {isChangeRequest 
+                ? "Are you sure you want to create this change request? It will go through the full approval process."
+                : "Are you sure you want to confirm these changes? This will create a new version of your request."
+              }
+              {isChangeRequest && originalData && (() => {
+                const comparison = compareObjects(originalData, formData, 'plant');
+                if (comparison.hasChanges) {
+                  return (
+                    <div className="mt-2">
+                      <p className="font-medium">Changes detected:</p>
+                      <div className="text-sm bg-muted p-2 rounded mt-1">
+                        {generateChangesSummary(comparison.changes)}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </AlertDescription>
             <div className="flex space-x-2 mt-3">
               <Button size="sm" onClick={handleSubmit} disabled={loading}>
-                Yes, Confirm Changes
+                {isChangeRequest ? 'Create Change Request' : 'Yes, Confirm Changes'}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setShowConfirmation(false)}>
                 Cancel

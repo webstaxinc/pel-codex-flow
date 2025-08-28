@@ -418,7 +418,7 @@ export const getCompletedRequests = async (): Promise<Request[]> => {
 export const addApproval = async (requestId: string, approverEmail: string, role: string, decision: string, comment: string, attachmentId?: string): Promise<void> => {
   try {
     const db = await initDB();
-    const tx = db.transaction(['approvals'], 'readwrite');
+    const tx = db.transaction(['approvals', 'historyLogs'], 'readwrite');
     const approval = {
       requestId,
       approverEmail,
@@ -429,6 +429,17 @@ export const addApproval = async (requestId: string, approverEmail: string, role
       timestamp: new Date().toISOString()
     };
     await tx.objectStore('approvals').put(approval);
+    
+    // Log the approval action
+    const historyLog = {
+      requestId,
+      action: decision === 'approve' ? 'approve' : (decision === 'reject' ? 'reject' : 'update-sap'),
+      user: approverEmail,
+      timestamp: approval.timestamp,
+      metadata: { comment, role, decision }
+    };
+    await tx.objectStore('historyLogs').put(historyLog);
+    
     await tx.done;
   } catch (error) {
     console.error('Failed to add approval:', error);

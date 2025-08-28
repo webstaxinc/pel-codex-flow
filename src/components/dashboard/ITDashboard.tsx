@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea';
 import { getRequestsWithDetails, updateRequestStatus, addApproval } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
+import { DocumentViewer } from '@/components/ui/document-viewer';
+import { RequestDetailsDialog } from '@/components/dialogs/RequestDetailsDialog';
 import { 
   Database, 
   CheckCircle, 
@@ -24,6 +26,9 @@ import {
 
 interface Request {
   id: string;
+  requestId?: string;
+  title?: string;
+  version?: number;
   type: 'plant' | 'company';
   status: string;
   createdBy: string;
@@ -39,6 +44,18 @@ export function ITDashboard({ userEmail }: { userEmail: string }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [sapUpdateNote, setSapUpdateNote] = useState('');
+  const [viewingRequest, setViewingRequest] = useState<Request | null>(null);
+  const [documentViewer, setDocumentViewer] = useState<{
+    open: boolean;
+    fileName: string;
+    fileContent: string;
+    fileType: string;
+  }>({
+    open: false,
+    fileName: '',
+    fileContent: '',
+    fileType: ''
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,7 +89,7 @@ export function ITDashboard({ userEmail }: { userEmail: string }) {
     }
 
     try {
-      await addApproval(requestId, userEmail, 'it', 'sap-updated', sapUpdateNote);
+      await addApproval(requestId, userEmail, 'it', 'approve', sapUpdateNote);
       await updateRequestStatus(requestId, 'sap-updated');
       setSapUpdateNote('');
       setSelectedRequest(null);
@@ -256,51 +273,13 @@ export function ITDashboard({ userEmail }: { userEmail: string }) {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl">
-                              <DialogHeader>
-                                <DialogTitle>Request Details</DialogTitle>
-                                <DialogDescription>
-                                  {request.type === 'plant' ? 'Plant Code' : 'Company Code'} Request #{request.id.slice(0, 8)}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  {Object.entries(request.details).map(([key, value]) => (
-                                    <div key={key}>
-                                      <label className="text-sm font-medium">{key}</label>
-                                      <p className="text-sm text-muted-foreground">{value as string}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                                {request.approvals && request.approvals.length > 0 && (
-                                  <div>
-                                    <h4 className="font-medium mb-2">Approval History</h4>
-                                    <div className="space-y-2">
-                                      {request.approvals.map((approval, index) => (
-                                        <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                                          <div>
-                                            <Badge variant={approval.decision === 'approved' ? 'success' : 'destructive'}>
-                                              {approval.decision}
-                                            </Badge>
-                                            <span className="ml-2 text-sm">{approval.approverEmail}</span>
-                                          </div>
-                                          <span className="text-xs text-muted-foreground">
-                                            {new Date(approval.timestamp).toLocaleDateString()}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setViewingRequest(request)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           
                           <Dialog>
                             <DialogTrigger asChild>
@@ -436,8 +415,26 @@ export function ITDashboard({ userEmail }: { userEmail: string }) {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+          </TabsContent>
+        </Tabs>
+
+        {/* Request Details Dialog */}
+        {viewingRequest && (
+          <RequestDetailsDialog
+            request={viewingRequest as any}
+            open={!!viewingRequest}
+            onOpenChange={(open) => !open && setViewingRequest(null)}
+          />
+        )}
+
+        {/* Document Viewer */}
+        <DocumentViewer
+          open={documentViewer.open}
+          onOpenChange={(open) => setDocumentViewer(prev => ({ ...prev, open }))}
+          fileName={documentViewer.fileName}
+          fileContent={documentViewer.fileContent}
+          fileType={documentViewer.fileType}
+        />
+      </div>
+    );
+  }
