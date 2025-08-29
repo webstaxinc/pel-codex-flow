@@ -19,6 +19,18 @@ export interface Request {
   isCompleted?: boolean;
   completedAt?: string;
   turnaroundTime?: number; // in days
+  tat?: number; // Alternative name for turnaround time
+}
+
+export interface Notification {
+  id: string;
+  recipientEmail: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  requestId?: string;
 }
 
 export interface PlantCodeDetails {
@@ -132,6 +144,11 @@ export async function initDB() {
 
       // Sessions
       db.createObjectStore('sessions', { keyPath: 'email' });
+
+      // Notifications
+      const notificationsStore = db.createObjectStore('notifications', { keyPath: 'id' });
+      notificationsStore.createIndex('recipientEmail', 'recipientEmail', { unique: false });
+      notificationsStore.createIndex('timestamp', 'timestamp', { unique: false });
     },
   });
 
@@ -461,5 +478,81 @@ export const updateRequestStatus = async (requestId: string, status: string): Pr
   } catch (error) {
     console.error('Failed to update request status:', error);
     throw error;
+  }
+};
+
+// Notification functions
+export const saveNotification = async (notification: Omit<Notification, 'id' | 'timestamp'>): Promise<string> => {
+  const db = await initDB();
+  const tx = db.transaction(['notifications'], 'readwrite');
+  const store = tx.objectStore('notifications');
+  
+  const notificationWithMeta: Notification = {
+    ...notification,
+    id: generateRequestId(),
+    timestamp: new Date().toISOString(),
+  };
+  
+  await store.add(notificationWithMeta);
+  return notificationWithMeta.id;
+};
+
+export const getNotifications = async (userEmail: string): Promise<Notification[]> => {
+  const db = await initDB();
+  const tx = db.transaction(['notifications'], 'readonly');
+  const store = tx.objectStore('notifications');
+  const notifications = await store.getAll();
+  
+  return notifications
+    .filter(n => n.recipientEmail === userEmail)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+  const db = await initDB();
+  const tx = db.transaction(['notifications'], 'readwrite');
+  const store = tx.objectStore('notifications');
+  
+  const notification = await store.get(notificationId);
+  if (notification) {
+    notification.read = true;
+    await store.put(notification);
+  }
+};
+
+export const sendNotificationToAllStakeholders = async (
+  requestId: string, 
+  type: string, 
+  title: string, 
+  message: string,
+  excludeEmail?: string
+): Promise<void> => {
+  const stakeholders = [
+    'sec@pel.com',
+    'siva@pel.com', 
+    'raghu@pel.com',
+    'manoj@pel.com',
+    'it@pel.com'
+  ];
+
+  // Get request details to include requestor
+  const db = await initDB();
+  const request = await db.get('requests', requestId);
+  if (request && request.createdBy !== excludeEmail) {
+    stakeholders.push(request.createdBy);
+  }
+
+  // Send notification to all stakeholders except the one who triggered the action
+  for (const email of stakeholders) {
+    if (email !== excludeEmail) {
+      await saveNotification({
+        recipientEmail: email,
+        type,
+        title,
+        message,
+        requestId,
+        read: false
+      });
+    }
   }
 };

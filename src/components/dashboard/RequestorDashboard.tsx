@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Eye, Edit, FileText, Building2, Search } from 'lucide-react';
+import { Plus, Eye, Edit, FileText, Building2, Search, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Request, getRequestsByUser, getAllRequests, getRequestsWithDetails } from '@/lib/storage';
 import { PlantCodeForm } from '@/components/forms/PlantCodeForm';
 import { CompanyCodeForm } from '@/components/forms/CompanyCodeForm';
@@ -119,29 +120,34 @@ export function RequestorDashboard({ userEmail }: RequestorDashboardProps) {
       </div>
 
       {/* Plant Code Requests Section */}
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>
-                  {view === 'my' ? 'Plant Code Requests' : 'All Plant Codes'}
-                </CardTitle>
-                <CardDescription>
-                  {view === 'my' ? 'Manage your plant code creation requests' : 'View existing plant codes and create change requests'}
-                </CardDescription>
-              </div>
+      <Collapsible defaultOpen={false}>
+        <Card className="bg-gradient-card shadow-soft">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center space-x-2 cursor-pointer flex-1">
+                  <Building2 className="h-6 w-6 text-primary" />
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <span>{view === 'my' ? 'Plant Code Requests' : 'All Plant Codes'}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </CardTitle>
+                    <CardDescription>
+                      {view === 'my' ? 'Manage your plant code creation requests' : 'View existing plant codes and create change requests'}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              {view === 'my' && (
+                <Button onClick={() => setShowPlantForm(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New
+                </Button>
+              )}
             </div>
-            {view === 'my' && (
-              <Button onClick={() => setShowPlantForm(true)} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
           {plantRequests.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -202,33 +208,40 @@ export function RequestorDashboard({ userEmail }: RequestorDashboardProps) {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Company Code Requests Section */}
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>
-                  {view === 'my' ? 'Company Code Requests' : 'All Company Codes'}
-                </CardTitle>
-                <CardDescription>
-                  {view === 'my' ? 'Manage your company code creation requests' : 'View existing company codes and create change requests'}
-                </CardDescription>
-              </div>
+      <Collapsible defaultOpen={false}>
+        <Card className="bg-gradient-card shadow-soft">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center space-x-2 cursor-pointer flex-1">
+                  <Building2 className="h-6 w-6 text-primary" />
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <span>{view === 'my' ? 'Company Code Requests' : 'All Company Codes'}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </CardTitle>
+                    <CardDescription>
+                      {view === 'my' ? 'Manage your company code creation requests' : 'View existing company codes and create change requests'}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              {view === 'my' && (
+                <Button onClick={() => setShowCompanyForm(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New
+                </Button>
+              )}
             </div>
-            {view === 'my' && (
-              <Button onClick={() => setShowCompanyForm(true)} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
           {companyRequests.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -289,8 +302,10 @@ export function RequestorDashboard({ userEmail }: RequestorDashboardProps) {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Dialogs */}
       {showPlantForm && (
